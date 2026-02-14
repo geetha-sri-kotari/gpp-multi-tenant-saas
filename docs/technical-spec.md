@@ -1,71 +1,78 @@
 # Technical Specification
+
 ## Multi-Tenant SaaS Platform
 
-## 1. Project Structure
+---
 
-### Backend Structure
+## 1. Project Organization
+
+### Backend Directory Layout
 
 ```
 backend/
 ├── src/
 │   ├── config/
-│   │   ├── database.js      # PostgreSQL connection pool
-│   │   └── jwt.js          # JWT configuration
+│   │   ├── database.js      # PostgreSQL connection configuration
+│   │   └── jwt.js           # JWT setup and configuration
 │   ├── controllers/
-│   │   ├── authController.js      # Authentication logic
-│   │   ├── tenantController.js    # Tenant management
-│   │   ├── userController.js      # User management
-│   │   ├── projectController.js   # Project management
-│   │   └── taskController.js      # Task management
+│   │   ├── authController.js      # Handles authentication logic
+│   │   ├── tenantController.js    # Tenant-related operations
+│   │   ├── userController.js      # User-related operations
+│   │   ├── projectController.js   # Project-related operations
+│   │   └── taskController.js      # Task-related operations
 │   ├── middleware/
-│   │   └── auth.js         # Authentication & authorization middleware
+│   │   └── auth.js          # Authentication and authorization middleware
 │   ├── routes/
-│   │   ├── authRoutes.js   # Auth endpoints
-│   │   ├── tenantRoutes.js # Tenant endpoints
-│   │   ├── userRoutes.js   # User endpoints
-│   │   ├── projectRoutes.js # Project endpoints
-│   │   └── taskRoutes.js   # Task endpoints
+│   │   ├── authRoutes.js    # Authentication routes
+│   │   ├── tenantRoutes.js  # Tenant routes
+│   │   ├── userRoutes.js    # User routes
+│   │   ├── projectRoutes.js # Project routes
+│   │   └── taskRoutes.js    # Task routes
 │   ├── utils/
-│   │   ├── runMigrations.js # Database migration runner
-│   │   ├── runSeeds.js      # Seed data loader
-│   │   └── auditLogger.js   # Audit logging utility
-│   └── server.js           # Main application entry point
-├── migrations/             # SQL migration files (optional, using database/migrations)
-├── seeds/                  # Seed data files (optional, using database/seeds)
-├── Dockerfile              # Backend container definition
-└── package.json            # Dependencies and scripts
+│   │   ├── runMigrations.js # Script to execute migrations
+│   │   ├── runSeeds.js      # Script to insert seed data
+│   │   └── auditLogger.js   # Utility for audit logging
+│   └── server.js            # Application entry point
+├── migrations/              # SQL migration scripts (optional)
+├── seeds/                   # Seed files (optional)
+├── Dockerfile               # Backend container configuration
+└── package.json             # Project dependencies and scripts
 ```
 
-### Frontend Structure
+---
+
+### Frontend Directory Layout
 
 ```
 frontend/
 ├── src/
 │   ├── components/
-│   │   └── Navbar.jsx      # Navigation component
+│   │   └── Navbar.jsx           # Navigation bar component
 │   ├── pages/
-│   │   ├── Register.jsx    # Tenant registration page
-│   │   ├── Login.jsx       # Login page
-│   │   ├── Dashboard.jsx   # Dashboard page
-│   │   ├── Projects.jsx    # Projects list page
-│   │   ├── ProjectDetails.jsx # Project details page
-│   │   └── Users.jsx       # Users list page
+│   │   ├── Register.jsx         # Tenant registration screen
+│   │   ├── Login.jsx            # Authentication screen
+│   │   ├── Dashboard.jsx        # Dashboard view
+│   │   ├── Projects.jsx         # Project listing view
+│   │   ├── ProjectDetails.jsx   # Detailed project view
+│   │   └── Users.jsx            # User listing view
 │   ├── services/
-│   │   └── api.js          # API service layer
+│   │   └── api.js               # API communication layer
 │   ├── context/
-│   │   └── AuthContext.jsx  # Authentication context
+│   │   └── AuthContext.jsx      # Authentication state management
 │   ├── utils/
-│   │   └── ProtectedRoute.jsx # Route protection component
-│   ├── App.jsx             # Main app component
-│   ├── main.jsx            # Application entry point
-│   └── index.css           # Global styles
-├── index.html              # HTML template
-├── vite.config.js          # Vite configuration
-├── Dockerfile              # Frontend container definition
-└── package.json            # Dependencies and scripts
+│   │   └── ProtectedRoute.jsx   # Route guarding component
+│   ├── App.jsx                  # Root React component
+│   ├── main.jsx                 # Application bootstrap file
+│   └── index.css                # Global stylesheet
+├── index.html                   # HTML entry template
+├── vite.config.js               # Vite build configuration
+├── Dockerfile                   # Frontend container configuration
+└── package.json                 # Project dependencies and scripts
 ```
 
-### Database Structure
+---
+
+### Database Directory Layout
 
 ```
 database/
@@ -76,57 +83,68 @@ database/
 │   ├── 004_create_tasks.sql
 │   └── 005_create_audit_logs.sql
 └── seeds/
-    └── seed_data.sql       # Seed data (actual hashes generated in runSeeds.js)
+    └── seed_data.sql            # Seed dataset (password hashes generated dynamically)
 ```
 
-### Root Structure
+---
+
+### Root Directory Layout
 
 ```
 saas-multitennant/
-├── backend/                # Backend application
-├── frontend/               # Frontend application
-├── database/              # Database migrations and seeds
-├── docs/                  # Documentation
-├── docker-compose.yml      # Docker orchestration
-├── submission.json        # Test credentials
-└── README.md              # Project documentation
+├── backend/                # Backend service
+├── frontend/               # Frontend client
+├── database/               # Migrations and seed scripts
+├── docs/                   # Documentation files
+├── docker-compose.yml      # Container orchestration
+├── submission.json         # Sample credentials for evaluation
+└── README.md               # Project overview
 ```
 
-## 2. Development Setup Guide
+---
 
-### Prerequisites
+## 2. Development Setup Instructions
 
-- **Node.js**: Version 18 or higher
-- **PostgreSQL**: Version 15 or higher (if running locally)
-- **Docker**: Version 20.10 or higher (for containerized setup)
-- **Docker Compose**: Version 2.0 or higher
-- **Git**: For version control
+### Required Tools
 
-### Local Development Setup (Without Docker)
+* Node.js version 18 or above
+* PostgreSQL version 15 or above (for local execution)
+* Docker version 20.10 or above
+* Docker Compose version 2.0 or above
+* Git for version control
 
-#### Step 1: Database Setup
+---
 
-1. Install PostgreSQL 15
-2. Create database:
+## Local Setup (Without Docker)
+
+### Step 1: Configure Database
+
+Install PostgreSQL 15 and execute:
+
 ```sql
 CREATE DATABASE saas_db;
 CREATE USER postgres WITH PASSWORD 'postgres';
 GRANT ALL PRIVILEGES ON DATABASE saas_db TO postgres;
 ```
 
-#### Step 2: Backend Setup
+---
 
-1. Navigate to backend directory:
+### Step 2: Backend Configuration
+
+1. Move to backend folder:
+
 ```bash
 cd backend
 ```
 
-2. Install dependencies:
+2. Install required packages:
+
 ```bash
 npm install
 ```
 
-3. Create `.env` file:
+3. Create a `.env` file:
+
 ```env
 DB_HOST=localhost
 DB_PORT=5432
@@ -140,189 +158,220 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 ```
 
-4. Run migrations:
+4. Execute migrations:
+
 ```bash
 npm run migrate
 ```
 
-5. Load seed data:
+5. Insert seed data:
+
 ```bash
 npm run seed
 ```
 
 6. Start development server:
+
 ```bash
 npm run dev
 ```
 
-Backend will be available at `http://localhost:5000`
+Backend will run at:
 
-#### Step 3: Frontend Setup
+```
+http://localhost:5000
+```
+
+---
+
+### Step 3: Frontend Configuration
 
 1. Navigate to frontend directory:
+
 ```bash
 cd frontend
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
-3. Create `.env` file (optional, defaults work):
+3. Optional `.env` configuration:
+
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
-4. Start development server:
+4. Launch development server:
+
 ```bash
 npm run dev
 ```
 
-Frontend will be available at `http://localhost:3000`
+Frontend will be accessible at:
 
-### Docker Setup (Recommended)
+```
+http://localhost:3000
+```
 
-#### Step 1: Ensure Docker is Running
+---
+
+## Docker-Based Setup (Preferred)
+
+### Step 1: Confirm Docker Installation
 
 ```bash
 docker --version
 docker-compose --version
 ```
 
-#### Step 2: Start All Services
+---
 
-From project root:
+### Step 2: Launch All Services
+
+From the project root directory:
+
 ```bash
 docker-compose up -d
 ```
 
-This will:
-- Start PostgreSQL database
-- Run database migrations automatically
-- Load seed data automatically
-- Start backend API server
-- Start frontend application
+This command will:
 
-#### Step 3: Verify Services
+* Initialize PostgreSQL
+* Apply database migrations
+* Populate seed data
+* Start backend service
+* Start frontend service
 
-Check service status:
+---
+
+### Step 3: Verify Containers
+
 ```bash
 docker-compose ps
 ```
 
-All services should show "Up" status.
+Ensure all containers display an “Up” status.
 
-#### Step 4: Access Application
+---
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
-- Health Check: http://localhost:5000/api/health
+### Step 4: Access the Application
 
-#### Step 5: View Logs
+* Frontend: [http://localhost:3000](http://localhost:3000)
+* Backend API: [http://localhost:5000](http://localhost:5000)
+* Health Endpoint: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+---
+
+### Step 5: Monitor Logs
 
 ```bash
-# All services
 docker-compose logs -f
-
-# Specific service
 docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f database
 ```
 
-#### Step 6: Stop Services
+---
+
+### Step 6: Shut Down Services
 
 ```bash
 docker-compose down
 ```
 
-To remove volumes (clears database):
+To remove volumes and reset the database:
+
 ```bash
 docker-compose down -v
 ```
 
-## 3. Environment Variables
+---
+
+## 3. Configuration Variables
 
 ### Backend Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `DB_HOST` | Database host | `localhost` | Yes |
-| `DB_PORT` | Database port | `5432` | Yes |
-| `DB_NAME` | Database name | `saas_db` | Yes |
-| `DB_USER` | Database user | `postgres` | Yes |
-| `DB_PASSWORD` | Database password | - | Yes |
-| `JWT_SECRET` | JWT signing secret | - | Yes (min 32 chars) |
-| `JWT_EXPIRES_IN` | Token expiration | `24h` | No |
-| `PORT` | Server port | `5000` | No |
-| `NODE_ENV` | Environment | `development` | No |
-| `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` | Yes |
+| Variable       | Purpose                  | Default                                        | Mandatory |
+| -------------- | ------------------------ | ---------------------------------------------- | --------- |
+| DB_HOST        | Database server host     | localhost                                      | Yes       |
+| DB_PORT        | Database port            | 5432                                           | Yes       |
+| DB_NAME        | Database name            | saas_db                                        | Yes       |
+| DB_USER        | Database username        | postgres                                       | Yes       |
+| DB_PASSWORD    | Database password        | -                                              | Yes       |
+| JWT_SECRET     | Secret for token signing | -                                              | Yes       |
+| JWT_EXPIRES_IN | Token validity duration  | 24h                                            | No        |
+| PORT           | Application port         | 5000                                           | No        |
+| NODE_ENV       | Environment mode         | development                                    | No        |
+| FRONTEND_URL   | Allowed frontend origin  | [http://localhost:3000](http://localhost:3000) | Yes       |
+
+---
 
 ### Frontend Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `VITE_API_URL` | Backend API URL | `http://localhost:5000/api` | No |
+| Variable     | Purpose              | Default                                                | Mandatory |
+| ------------ | -------------------- | ------------------------------------------------------ | --------- |
+| VITE_API_URL | Backend API base URL | [http://localhost:5000/api](http://localhost:5000/api) | No        |
 
-## 4. Database Migrations
+---
 
-### Running Migrations
+## 4. Database Migration Process
 
-Migrations run automatically when backend starts in Docker. For manual execution:
+Migrations are automatically triggered when running in Docker. For manual execution:
 
 ```bash
-# Using npm script
 npm run migrate
+```
 
-# Or directly
+or
+
+```bash
 node src/utils/runMigrations.js
 ```
 
-### Migration Files
+Migration files are executed sequentially in the `database/migrations/` directory.
 
-Migrations are located in `database/migrations/` and run in numerical order:
-1. `001_create_tenants.sql` - Creates tenants table
-2. `002_create_users.sql` - Creates users table
-3. `003_create_projects.sql` - Creates projects table
-4. `004_create_tasks.sql` - Creates tasks table
-5. `005_create_audit_logs.sql` - Creates audit_logs table
+---
 
-## 5. Seed Data
+## 5. Seed Data Process
 
-### Running Seeds
-
-Seed data loads automatically when backend starts in Docker. For manual execution:
+Seeds run automatically in Docker. For manual execution:
 
 ```bash
-# Using npm script
 npm run seed
+```
 
-# Or directly
+or
+
+```bash
 node src/utils/runSeeds.js
 ```
 
-### Seed Data Includes
+Seed dataset contains:
 
-- 1 Super Admin user (superadmin@system.com / Admin@123)
-- 1 Demo Tenant (subdomain: demo)
-- 1 Tenant Admin (admin@demo.com / Demo@123)
-- 2 Regular Users (user1@demo.com, user2@demo.com / User@123)
-- 2 Projects (Project Alpha, Project Beta)
-- 5 Tasks distributed across projects
+* One Super Administrator
+* One Demo Tenant
+* One Tenant Administrator
+* Two Standard Users
+* Two Projects
+* Five Tasks
 
-See `submission.json` for complete test credentials.
+Refer to `submission.json` for login credentials.
 
-## 6. Testing
+---
 
-### Manual Testing
+## 6. Testing Procedures
 
-1. **Health Check**:
+### Health Endpoint
+
 ```bash
 curl http://localhost:5000/api/health
 ```
 
-Expected response:
+Expected output:
+
 ```json
 {
   "status": "ok",
@@ -330,7 +379,10 @@ Expected response:
 }
 ```
 
-2. **Login Test**:
+---
+
+### Login Request
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -341,88 +393,93 @@ curl -X POST http://localhost:5000/api/auth/login \
   }'
 ```
 
-3. **Get Current User** (requires token from login):
+---
+
+### Retrieve Current User
+
 ```bash
 curl http://localhost:5000/api/auth/me \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
-### API Testing Tools
+---
 
-- **Postman**: Import API collection for testing
-- **cURL**: Command-line testing (examples above)
-- **Browser DevTools**: Test frontend API calls
+## 7. Troubleshooting Guide
 
-## 7. Troubleshooting
+### Database Connectivity Issues
 
-### Common Issues
+Possible fixes:
 
-#### Database Connection Error
+* Confirm database container is active
+* Inspect database logs
+* Validate environment variables
+* Ensure database is ready before backend initialization
 
-**Problem**: Backend cannot connect to database
+---
 
-**Solutions**:
-1. Verify database is running: `docker-compose ps database`
-2. Check database logs: `docker-compose logs database`
-3. Verify environment variables in `docker-compose.yml`
-4. Ensure database service is healthy before backend starts
+### Migration Failures
 
-#### Migration Errors
+Possible solutions:
 
-**Problem**: Migrations fail to run
+* Verify database accessibility
+* Confirm migration files exist
+* Review backend logs
+* Execute migrations manually
 
-**Solutions**:
-1. Check database connection
-2. Verify migration files are present in `database/migrations/`
-3. Check migration logs in backend logs
-4. Manually run migrations: `npm run migrate`
+---
 
-#### CORS Errors
+### CORS Problems
 
-**Problem**: Frontend cannot call backend API
+Possible fixes:
 
-**Solutions**:
-1. Verify `FRONTEND_URL` environment variable matches frontend URL
-2. In Docker: Use service name `http://frontend:3000`
-3. Locally: Use `http://localhost:3000`
-4. Check CORS configuration in `backend/src/server.js`
+* Confirm `FRONTEND_URL` matches frontend address
+* In Docker use service name instead of localhost
+* Review CORS settings in `server.js`
 
-#### Port Already in Use
+---
 
-**Problem**: Port 3000, 5000, or 5432 already in use
+### Port Conflicts
 
-**Solutions**:
-1. Stop conflicting services
-2. Change ports in `docker-compose.yml`
-3. Update frontend `VITE_API_URL` if backend port changes
+If ports 3000, 5000, or 5432 are occupied:
 
-## 8. Production Deployment Considerations
+* Stop conflicting services
+* Modify ports in `docker-compose.yml`
+* Update frontend API URL accordingly
 
-### Security
+---
 
-1. **Environment Variables**: Use secrets management (AWS Secrets Manager, HashiCorp Vault)
-2. **HTTPS**: Enable HTTPS with SSL certificates
-3. **JWT Secret**: Use strong, randomly generated secret (min 32 characters)
-4. **Database Password**: Use strong, unique password
-5. **CORS**: Restrict CORS to production frontend URL only
+## 8. Production Deployment Guidelines
 
-### Performance
+### Security Recommendations
 
-1. **Database Indexes**: Ensure all indexes are created
-2. **Connection Pooling**: Tune PostgreSQL connection pool size
-3. **Caching**: Add Redis for frequently accessed data
-4. **CDN**: Serve static assets via CDN
+* Store secrets securely using a secrets manager
+* Enforce HTTPS with valid SSL certificates
+* Generate strong JWT secret keys
+* Use strong database credentials
+* Restrict CORS to production frontend domain
 
-### Monitoring
+---
 
-1. **Health Checks**: Monitor `/api/health` endpoint
-2. **Logging**: Centralized logging (ELK stack, CloudWatch)
-3. **Metrics**: Application metrics (Prometheus, DataDog)
-4. **Alerts**: Set up alerts for errors and performance issues
+### Performance Optimization
 
-### Scaling
+* Ensure database indexes are configured
+* Adjust connection pool settings
+* Introduce caching with Redis
+* Deliver static content through CDN
 
-1. **Horizontal Scaling**: Add more backend instances behind load balancer
-2. **Database Replicas**: Use read replicas for read-heavy workloads
-3. **Caching Layer**: Add Redis for session and data caching
+---
 
+### Monitoring and Observability
+
+* Continuously monitor health endpoint
+* Centralize logs (e.g., ELK stack, CloudWatch)
+* Track metrics (Prometheus, DataDog)
+* Configure alerting mechanisms
+
+---
+
+### Scaling Strategy
+
+* Add additional backend instances behind a load balancer
+* Configure database read replicas
+* Implement caching layer for high-read operations

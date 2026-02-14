@@ -1,408 +1,524 @@
-# Product Requirements Document (PRD)
-## Multi-Tenant SaaS Platform - Project & Task Management System
-
-## 1. User Personas
-
-### Persona 1: Super Admin
-
-**Role Description:**
-System-level administrator with access to all tenants and system-wide configuration capabilities.
-
-**Key Responsibilities:**
-- Monitor all tenants in the system
-- Manage tenant subscriptions and plans
-- Suspend or activate tenant accounts
-- View system-wide analytics and statistics
-- Troubleshoot cross-tenant issues
-- Manage super admin accounts
-
-**Main Goals:**
-- Ensure system stability and performance
-- Manage tenant relationships
-- Enforce subscription limits
-- Monitor system usage and health
-- Provide support to tenant admins
-
-**Pain Points:**
-- Need to access multiple tenants' data quickly
-- Difficulty tracking tenant usage and limits
-- Manual process for subscription management
-- Lack of visibility into system-wide metrics
-- Time-consuming tenant onboarding process
-
-**Key Features Needed:**
-- Dashboard showing all tenants
-- Ability to update tenant subscription plans
-- Tenant status management (active/suspended)
-- System-wide statistics and analytics
-- Search and filter tenants
-
-### Persona 2: Tenant Admin
-
-**Role Description:**
-Organization administrator with full control over their tenant's users, projects, and tasks.
-
-**Key Responsibilities:**
-- Manage users within their organization
-- Create and manage projects
-- Assign tasks to team members
-- Monitor project progress
-- Manage subscription and limits
-- Onboard new team members
-
-**Main Goals:**
-- Efficiently manage team and projects
-- Track project progress and task completion
-- Ensure team productivity
-- Stay within subscription limits
-- Maintain organized project structure
-
-**Pain Points:**
-- Difficulty tracking multiple projects simultaneously
-- Manual task assignment and status updates
-- Limited visibility into team workload
-- Subscription limit management
-- Time-consuming user onboarding
-- Lack of project analytics
-
-**Key Features Needed:**
-- User management interface
-- Project creation and management
-- Task assignment and tracking
-- Dashboard with project statistics
-- Subscription limit visibility
-- Bulk operations (future)
-
-### Persona 3: End User (Regular Team Member)
-
-**Role Description:**
-Regular team member who works on assigned tasks within projects.
-
-**Key Responsibilities:**
-- Complete assigned tasks
-- Update task status
-- View project details
-- Communicate task progress
-- Manage personal task list
-
-**Main Goals:**
-- Complete tasks on time
-- Stay organized with assigned work
-- Understand project context
-- Track personal productivity
-- Collaborate with team members
-
-**Pain Points:**
-- Difficulty finding assigned tasks
-- Lack of visibility into project goals
-- Manual status updates
-- No personal dashboard
-- Difficulty prioritizing tasks
-
-**Key Features Needed:**
-- Personal task dashboard
-- Task status update interface
-- Project view (read-only)
-- Task filtering and search
-- Due date reminders (future)
-
-## 2. Functional Requirements
-
-### Authentication Module
-
-**FR-001:** The system shall allow new organizations to register as tenants with a unique subdomain.
-- **Priority:** High
-- **Acceptance Criteria:** 
-  - Tenant can provide organization name, subdomain, admin email, and password
-  - Subdomain must be unique across all tenants
-  - System creates tenant with 'free' subscription plan by default
-  - Admin user is automatically created with 'tenant_admin' role
-
-**FR-002:** The system shall authenticate users using email, password, and tenant subdomain.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - User provides email, password, and tenant subdomain
-  - System validates credentials and returns JWT token
-  - Token expires after 24 hours
-  - Invalid credentials return 401 error
-
-**FR-003:** The system shall allow users to view their current profile and tenant information.
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - Authenticated users can call GET /api/auth/me
-  - Response includes user details and tenant subscription information
-  - Super admin users see null tenant information
-
-**FR-004:** The system shall allow users to logout, invalidating their session.
-- **Priority:** Low
-- **Acceptance Criteria:**
-  - Logout endpoint logs the action in audit logs
-  - Client removes token from storage
-
-### Tenant Management Module
-
-**FR-005:** The system shall allow super admins to view all tenants in the system.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - GET /api/tenants returns paginated list of all tenants
-  - Response includes tenant stats (user count, project count)
-  - Supports filtering by status and subscription plan
-  - Only super admin can access this endpoint
-
-**FR-006:** The system shall allow tenant admins to view their own tenant details.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - GET /api/tenants/:tenantId returns tenant information
-  - Includes subscription limits and current usage statistics
-  - Tenant admin can only access their own tenant
-
-**FR-007:** The system shall allow tenant admins to update their tenant name.
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - PUT /api/tenants/:tenantId allows updating tenant name
-  - Tenant admin cannot update subscription plan or status
-  - Changes are logged in audit logs
-
-**FR-008:** The system shall allow super admins to update tenant subscription plans and limits.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - Super admin can update subscription_plan, max_users, max_projects
-  - Changes are logged in audit logs
-  - Tenant admin cannot perform these updates
-
-### User Management Module
-
-**FR-009:** The system shall allow tenant admins to add new users to their tenant.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - POST /api/tenants/:tenantId/users creates new user
-  - Validates subscription limit (max_users) before creation
-  - Returns 403 if limit reached
-  - Email must be unique within tenant
-  - Password is hashed using bcrypt
-
-**FR-010:** The system shall allow users to view list of users in their tenant.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - GET /api/tenants/:tenantId/users returns paginated user list
-  - Supports search by name or email
-  - Supports filtering by role
-  - Users can only see users from their own tenant
-
-**FR-011:** The system shall allow tenant admins to update user information (name, role, status).
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - PUT /api/users/:userId allows updating fullName, role, isActive
-  - Regular users can only update their own fullName
-  - Changes are logged in audit logs
-
-**FR-012:** The system shall allow tenant admins to delete users from their tenant.
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - DELETE /api/users/:userId removes user
-  - Cannot delete self
-  - Tasks assigned to deleted user have assigned_to set to NULL
-  - Action is logged in audit logs
-
-### Project Management Module
-
-**FR-013:** The system shall allow authenticated users to create projects within their tenant.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - POST /api/projects creates new project
-  - Validates subscription limit (max_projects) before creation
-  - Returns 403 if limit reached
-  - Project is associated with user's tenant automatically
-  - Creator is stored in created_by field
-
-**FR-014:** The system shall allow users to view list of projects in their tenant.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - GET /api/projects returns paginated project list
-  - Includes task count and completed task count
-  - Supports filtering by status
-  - Supports search by project name
-  - Users only see projects from their tenant
-
-**FR-015:** The system shall allow project creators or tenant admins to update projects.
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - PUT /api/projects/:projectId allows updating name, description, status
-  - Only project creator or tenant admin can update
-  - Changes are logged in audit logs
-
-**FR-016:** The system shall allow project creators or tenant admins to delete projects.
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - DELETE /api/projects/:projectId removes project
-  - All tasks in project are cascade deleted
-  - Action is logged in audit logs
-
-### Task Management Module
-
-**FR-017:** The system shall allow users to create tasks within projects.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - POST /api/projects/:projectId/tasks creates new task
-  - Task is associated with project's tenant (not user's tenant from JWT)
-  - Can assign task to user in same tenant
-  - Default status is 'todo'
-  - Default priority is 'medium'
-
-**FR-018:** The system shall allow users to view tasks within a project.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - GET /api/projects/:projectId/tasks returns task list
-  - Supports filtering by status, priority, assigned user
-  - Supports search by task title
-  - Includes assigned user information
-  - Ordered by priority and due date
-
-**FR-019:** The system shall allow users to update task status.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - PATCH /api/tasks/:taskId/status updates task status
-  - Any user in tenant can update status
-  - Valid statuses: todo, in_progress, completed
-
-**FR-020:** The system shall allow users to update task details.
-- **Priority:** Medium
-- **Acceptance Criteria:**
-  - PUT /api/tasks/:taskId allows updating all task fields
-  - Can assign/unassign tasks
-  - Verifies assigned user belongs to same tenant
-  - Changes are logged in audit logs
-
-### Subscription Management Module
-
-**FR-021:** The system shall enforce subscription plan limits for users and projects.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - Before creating user, check current count vs max_users
-  - Before creating project, check current count vs max_projects
-  - Return 403 error if limit reached
-  - Limits are defined per subscription plan
-
-**FR-022:** The system shall provide three subscription plans: free, pro, enterprise.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - Free: 5 users, 3 projects
-  - Pro: 25 users, 15 projects
-  - Enterprise: 100 users, 50 projects
-  - New tenants start with 'free' plan
-
-### Audit & Security Module
-
-**FR-023:** The system shall log all important actions in audit_logs table.
-- **Priority:** High
-- **Acceptance Criteria:**
-  - Logs CREATE, UPDATE, DELETE operations
-  - Includes tenant_id, user_id, action, entity_type, entity_id, ip_address
-  - Logs login and logout events
-  - Audit logs are never deleted
-
-**FR-024:** The system shall ensure complete data isolation between tenants.
-- **Priority:** Critical
-- **Acceptance Criteria:**
-  - Users cannot access data from other tenants
-  - All queries automatically filter by tenant_id
-  - Super admin can access all tenants
-  - No data leakage possible through API manipulation
-
-## 3. Non-Functional Requirements
-
-### Performance Requirements
-
-**NFR-001:** API Response Time
-- **Requirement:** 90% of API requests shall respond within 200ms
-- **Measurement:** Response time from request received to response sent
-- **Rationale:** Ensures responsive user experience
-- **Implementation:** Database indexes on tenant_id, optimized queries, connection pooling
-
-**NFR-002:** Database Query Performance
-- **Requirement:** All database queries shall complete within 500ms for datasets up to 10,000 records per tenant
-- **Measurement:** Query execution time
-- **Rationale:** Supports efficient data retrieval
-- **Implementation:** Proper indexing, query optimization, connection pooling
-
-### Security Requirements
-
-**NFR-003:** Password Security
-- **Requirement:** All passwords shall be hashed using bcrypt with minimum 10 salt rounds
-- **Measurement:** Password storage format verification
-- **Rationale:** Protects user credentials from compromise
-- **Implementation:** bcrypt library with 10 salt rounds, never store plain text
-
-**NFR-004:** Authentication Token Expiry
-- **Requirement:** JWT tokens shall expire after 24 hours
-- **Measurement:** Token expiration time validation
-- **Rationale:** Limits exposure if token is compromised
-- **Implementation:** JWT expiration set to 24h, client handles token refresh
-
-**NFR-005:** Data Isolation
-- **Requirement:** Zero data leakage between tenants - 100% isolation guarantee
-- **Measurement:** Security testing - attempt cross-tenant data access
-- **Rationale:** Critical for multi-tenant security and compliance
-- **Implementation:** Middleware enforcement, database constraints, comprehensive testing
-
-### Scalability Requirements
-
-**NFR-006:** Tenant Capacity
-- **Requirement:** System shall support minimum 100 concurrent tenants
-- **Measurement:** Load testing with 100 active tenants
-- **Rationale:** Supports business growth
-- **Implementation:** Efficient database queries, connection pooling, horizontal scaling capability
-
-**NFR-007:** User Capacity per Tenant
-- **Requirement:** System shall support up to 100 users per tenant (enterprise plan)
-- **Measurement:** Performance testing with maximum users
-- **Rationale:** Supports large organizations
-- **Implementation:** Optimized user queries, pagination, efficient data structures
-
-### Availability Requirements
-
-**NFR-008:** System Uptime
-- **Requirement:** System shall target 99% uptime (7.2 hours downtime per month)
-- **Measurement:** Uptime monitoring and tracking
-- **Rationale:** Ensures reliable service for tenants
-- **Implementation:** Health check endpoints, monitoring, error handling
-
-**NFR-009:** Database Availability
-- **Requirement:** Database shall be available and responsive for 99.9% of requests
-- **Measurement:** Database connection success rate
-- **Rationale:** Critical for application functionality
-- **Implementation:** Connection pooling, retry logic, health checks
-
-### Usability Requirements
-
-**NFR-010:** Responsive Design
-- **Requirement:** Frontend shall be fully functional on desktop (1920x1080) and mobile (375x667) viewports
-- **Measurement:** UI testing on multiple screen sizes
-- **Rationale:** Supports users on various devices
-- **Implementation:** Responsive CSS, mobile-first design, flexible layouts
-
-**NFR-011:** Error Handling
-- **Requirement:** All errors shall display user-friendly messages
-- **Measurement:** Error message clarity and helpfulness
-- **Rationale:** Improves user experience
-- **Implementation:** Consistent error response format, clear error messages
-
-## 4. Out of Scope (Future Enhancements)
-
-- Email notifications for task assignments
-- Real-time collaboration features
-- File attachments for tasks
-- Project templates
-- Advanced reporting and analytics
-- Mobile native applications
-- Single Sign-On (SSO) integration
-- Two-factor authentication (2FA)
-- Password reset functionality
-- Email verification
-- Activity feeds
-- Comments on tasks
-- Task dependencies
-- Gantt charts
-- Time tracking
-- Custom fields for tasks/projects
+# Product Requirements Document
 
+## Multi-Tenant SaaS Platform – Project and Task Management Application
+
+---
+
+# 1. User Profiles
+
+## Profile 1: Super Administrator
+
+### Role Overview
+
+A system-wide administrator who has full visibility and control over all tenants and global platform configurations.
+
+### Core Responsibilities
+
+* Oversee all registered tenants
+* Manage subscription tiers and billing plans
+* Activate or suspend tenant accounts
+* Monitor overall system statistics
+* Resolve issues that span multiple tenants
+* Manage super administrator accounts
+
+### Primary Objectives
+
+* Maintain platform reliability and performance
+* Oversee tenant lifecycle management
+* Enforce subscription restrictions
+* Monitor usage trends and system health
+* Assist tenant administrators when required
+
+### Challenges
+
+* Quickly accessing data across different tenants
+* Tracking tenant usage against subscription limits
+* Manual handling of subscription updates
+* Limited centralized visibility into platform metrics
+* Lengthy onboarding for new tenants
+
+### Required Capabilities
+
+* Central dashboard listing all tenants
+* Subscription plan modification tools
+* Tenant activation/suspension controls
+* Global analytics and reporting
+* Tenant search and filtering functionality
+
+---
+
+## Profile 2: Tenant Administrator
+
+### Role Overview
+
+An organizational admin responsible for managing users, projects, and tasks within their own tenant.
+
+### Core Responsibilities
+
+* Manage team members
+* Create and maintain projects
+* Assign and monitor tasks
+* Track project progress
+* Manage subscription usage
+* Onboard new employees
+
+### Primary Objectives
+
+* Efficiently organize teams and projects
+* Monitor task completion and deadlines
+* Improve team productivity
+* Stay within subscription limits
+* Maintain structured workflows
+
+### Challenges
+
+* Managing multiple projects simultaneously
+* Manual task allocation and updates
+* Limited insight into team workload
+* Monitoring subscription usage
+* User onboarding complexity
+* Lack of advanced analytics
+
+### Required Capabilities
+
+* User administration interface
+* Project lifecycle management
+* Task assignment and tracking system
+* Dashboard displaying project metrics
+* Visibility into subscription usage
+* Bulk operations (planned enhancement)
+
+---
+
+## Profile 3: Standard User (Team Member)
+
+### Role Overview
+
+A regular employee responsible for completing assigned tasks within projects.
+
+### Core Responsibilities
+
+* Execute assigned tasks
+* Update task progress
+* Review project details
+* Communicate work updates
+* Manage personal workload
+
+### Primary Objectives
+
+* Deliver tasks before deadlines
+* Stay organized
+* Understand overall project context
+* Monitor personal performance
+* Collaborate effectively
+
+### Challenges
+
+* Difficulty locating assigned tasks
+* Limited visibility into project objectives
+* Manual status updates
+* No centralized personal dashboard
+* Trouble prioritizing tasks
+
+### Required Capabilities
+
+* Individual task dashboard
+* Task status modification interface
+* Read-only access to project details
+* Search and filtering for tasks
+* Due date reminders (future feature)
+
+---
+
+# 2. Functional Requirements
+
+## Authentication Component
+
+### FR-001: Tenant Registration
+
+The system must allow organizations to register with a unique subdomain.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Organization provides name, subdomain, admin email, and password
+  * Subdomain must not duplicate an existing tenant
+  * Default subscription plan is set to “free”
+  * An admin account with role “tenant_admin” is created automatically
+
+---
+
+### FR-002: User Login
+
+The system must authenticate users using email, password, and tenant subdomain.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * User submits credentials including subdomain
+  * Valid credentials return a JWT
+  * Token validity is 24 hours
+  * Invalid credentials return HTTP 401
+
+---
+
+### FR-003: View Current User Information
+
+Authenticated users must be able to retrieve their profile and tenant details.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Accessible via GET /api/auth/me
+  * Response includes user and subscription details
+  * Super admin receives null tenant data
+
+---
+
+### FR-004: Logout
+
+Users must be able to terminate their session.
+
+* **Priority:** Low
+* **Acceptance Criteria:**
+
+  * Logout action is recorded in audit logs
+  * Client deletes stored token
+
+---
+
+## Tenant Administration
+
+### FR-005: View All Tenants (Super Admin Only)
+
+Super admins must be able to retrieve all tenants.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Paginated results returned
+  * Includes usage statistics
+  * Supports filtering by status and subscription
+  * Restricted to super admin role
+
+---
+
+### FR-006: View Tenant Details
+
+Tenant admins can view details of their own organization.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Returns subscription limits and usage
+  * Access restricted to own tenant
+
+---
+
+### FR-007: Update Tenant Name
+
+Tenant admins may update only the organization name.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Cannot modify subscription plan or status
+  * Change logged in audit records
+
+---
+
+### FR-008: Modify Subscription (Super Admin Only)
+
+Super admins can adjust subscription plan and limits.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Can update plan type, max_users, and max_projects
+  * Changes recorded in audit logs
+  * Tenant admins cannot perform this action
+
+---
+
+## User Administration
+
+### FR-009: Add Users
+
+Tenant admins can add users to their organization.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Validates max_users limit
+  * Returns 403 if exceeded
+  * Email must be unique within tenant
+  * Password stored using bcrypt hashing
+
+---
+
+### FR-010: List Users
+
+Users can retrieve a paginated list of users within their tenant.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Search by name or email supported
+  * Role-based filtering supported
+  * Cross-tenant access prohibited
+
+---
+
+### FR-011: Update User Details
+
+Tenant admins can modify user attributes.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Tenant admins can update name, role, and active status
+  * Regular users can update only their own name
+  * Changes logged
+
+---
+
+### FR-012: Delete Users
+
+Tenant admins can remove users.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Users cannot delete themselves
+  * Assigned tasks become unassigned (NULL)
+  * Deletion logged
+
+---
+
+## Project Management
+
+### FR-013: Create Project
+
+Authenticated users can create projects within their tenant.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Checks max_projects limit
+  * Returns 403 if exceeded
+  * Automatically links project to tenant
+  * Creator stored in created_by
+
+---
+
+### FR-014: View Projects
+
+Users can retrieve projects belonging to their tenant.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Pagination enabled
+  * Includes task counts
+  * Supports filtering and search
+  * Tenant-level isolation enforced
+
+---
+
+### FR-015: Update Project
+
+Project creator or tenant admin can edit project details.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Can update name, description, status
+  * Logged in audit records
+
+---
+
+### FR-016: Delete Project
+
+Authorized users can remove projects.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Cascade deletes associated tasks
+  * Action logged
+
+---
+
+## Task Management
+
+### FR-017: Create Task
+
+Users can add tasks under projects.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Linked to project’s tenant
+  * Can assign to valid user in same tenant
+  * Default status: todo
+  * Default priority: medium
+
+---
+
+### FR-018: View Tasks
+
+Users can list tasks within a project.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Filtering by status, priority, assigned user
+  * Search supported
+  * Ordered by priority and due date
+
+---
+
+### FR-019: Update Task Status
+
+Users can change task progress state.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Valid states: todo, in_progress, completed
+  * Accessible to any tenant member
+
+---
+
+### FR-020: Modify Task Details
+
+Users can edit task properties.
+
+* **Priority:** Medium
+* **Acceptance Criteria:**
+
+  * Can update all fields
+  * Assigned user must belong to same tenant
+  * Changes logged
+
+---
+
+## Subscription Control
+
+### FR-021: Enforce Plan Limits
+
+System must enforce limits on users and projects.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Validate counts before creation
+  * Return 403 if exceeded
+  * Limits tied to subscription plan
+
+---
+
+### FR-022: Subscription Plans
+
+Three plans must be available: free, pro, enterprise.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Free: 5 users, 3 projects
+  * Pro: 25 users, 15 projects
+  * Enterprise: 100 users, 50 projects
+  * New tenants default to free
+
+---
+
+## Audit and Security
+
+### FR-023: Audit Logging
+
+All critical actions must be recorded.
+
+* **Priority:** High
+* **Acceptance Criteria:**
+
+  * Logs CREATE, UPDATE, DELETE
+  * Includes tenant_id, user_id, action, entity info, IP
+  * Login/logout logged
+  * Logs are permanent
+
+---
+
+### FR-024: Tenant Data Isolation
+
+Complete separation of tenant data must be guaranteed.
+
+* **Priority:** Critical
+* **Acceptance Criteria:**
+
+  * Cross-tenant access prevented
+  * All queries filtered by tenant_id
+  * Super admin exception allowed
+  * API manipulation cannot bypass restrictions
+
+---
+
+# 3. Non-Functional Requirements
+
+## Performance
+
+**NFR-001:** 90% of API responses under 200ms
+**NFR-002:** Database queries under 500ms for up to 10,000 records per tenant
+
+Implementation includes indexing, query optimization, and connection pooling.
+
+---
+
+## Security
+
+**NFR-003:** Passwords hashed with bcrypt (minimum 10 salt rounds)
+**NFR-004:** JWT expiration set to 24 hours
+**NFR-005:** Zero cross-tenant data exposure guaranteed
+
+---
+
+## Scalability
+
+**NFR-006:** Support minimum 100 active tenants
+**NFR-007:** Support up to 100 users per tenant (enterprise)
+
+---
+
+## Availability
+
+**NFR-008:** Target 99% system uptime
+**NFR-009:** Database availability at 99.9%
+
+---
+
+## Usability
+
+**NFR-010:** Fully responsive design (desktop and mobile)
+**NFR-011:** Clear and user-friendly error messages
+
+---
+
+# 4. Exclusions (Planned for Future Releases)
+
+The following features are not included in the current version:
+
+* Task email notifications
+* Real-time collaboration
+* File uploads
+* Project templates
+* Advanced analytics
+* Native mobile apps
+* SSO integration
+* Two-factor authentication
+* Password recovery
+* Email verification
+* Activity feeds
+* Task comments
+* Task dependencies
+* Gantt chart visualization
+* Time tracking
+* Custom metadata fields

@@ -1,93 +1,111 @@
-# Architecture Document
-## Multi-Tenant SaaS Platform
+# Architecture Overview
 
-## 1. System Architecture
+## Multi-Tenant SaaS Application
 
-### High-Level Architecture
+---
 
-The system follows a three-tier architecture:
+# 1. Overall System Design
+
+## Architectural Pattern
+
+The platform is built using a classic three-layer architecture consisting of presentation, application, and data layers.
 
 ```
 ┌─────────────────┐
 │   Web Browser   │
-│   (Frontend)    │
+│   (Client UI)   │
 └────────┬────────┘
          │ HTTP/HTTPS
          │
 ┌────────▼────────┐
-│  React SPA      │
+│  React Frontend │
 │  (Port 3000)    │
-│  - Components   │
-│  - Pages        │
-│  - Services     │
+│  - UI Components│
+│  - Views        │
+│  - API Services │
 └────────┬────────┘
-         │ REST API
-         │ JWT Auth
+         │ REST Calls
+         │ JWT Tokens
          │
 ┌────────▼────────┐
-│  Express API    │
+│  Node/Express   │
+│  API Server     │
 │  (Port 5000)    │
-│  - Controllers  │
-│  - Middleware   │
-│  - Routes       │
+│  - Route Handlers│
+│  - Middleware    │
+│  - Controllers   │
 └────────┬────────┘
-         │ SQL Queries
+         │ SQL Execution
          │
 ┌────────▼────────┐
-│  PostgreSQL     │
+│  PostgreSQL DB  │
 │  (Port 5432)    │
-│  - Tenants      │
+│  - Tenant Data  │
 │  - Users        │
 │  - Projects     │
 │  - Tasks        │
 └─────────────────┘
 ```
 
-### Authentication Flow
+The frontend communicates with the backend through REST APIs, and the backend interacts with PostgreSQL for persistent storage.
+
+---
+
+## Authentication Workflow
 
 ```
-1. User submits login form
+1. User submits login credentials
    ↓
-2. Frontend sends POST /api/auth/login
+2. Frontend sends POST /api/auth/login request
    ↓
-3. Backend validates credentials
+3. Backend verifies email and password
    ↓
-4. Backend generates JWT token
+4. JWT token is generated
    ↓
-5. Frontend stores token in localStorage
+5. Token is saved in browser localStorage
    ↓
-6. Frontend includes token in Authorization header for all requests
+6. Token is attached to Authorization header in future requests
    ↓
-7. Backend middleware validates token on each request
+7. Backend middleware validates token for each request
    ↓
-8. Backend extracts userId, tenantId, role from token
+8. User identity (userId, tenantId, role) extracted
    ↓
-9. Backend processes request with tenant isolation
+9. Request processed with tenant-level restrictions
 ```
 
-### Data Flow - Creating a Project
+JWT is used to maintain stateless authentication across API calls.
+
+---
+
+## Project Creation Data Flow
 
 ```
-1. User clicks "Create Project"
+1. User selects "Create Project"
    ↓
-2. Frontend sends POST /api/projects with JWT token
+2. Frontend sends POST /api/projects including JWT
    ↓
-3. Auth middleware validates token, extracts tenantId
+3. Authentication middleware validates token
    ↓
-4. Controller checks subscription limit
+4. tenantId is retrieved from token
    ↓
-5. Controller creates project with tenantId from JWT
+5. Subscription limits are verified
    ↓
-6. Controller logs action in audit_logs
+6. New project is saved with tenantId association
    ↓
-7. Response returned to frontend
+7. Entry recorded in audit_logs
    ↓
-8. Frontend updates UI
+8. Success response returned
+   ↓
+9. Frontend refreshes project list
 ```
 
-## 2. Database Schema Design
+This ensures that every created resource is linked to the correct tenant.
 
-### Entity Relationship Diagram
+---
+
+# 2. Database Structure
+
+## Entity Relationship Model
 
 ```
 ┌─────────────┐
@@ -107,37 +125,35 @@ The system follows a three-tier architecture:
 ├─────────────┤      │
 │ id (PK)     │      │
 │ tenant_id   │──────┘
-│ email       │      │
-│ password    │      │
-│ full_name   │      │
-│ role        │      │
-│ is_active   │      │
-└──────┬──────┘      │
-       │             │
-       │             │
-┌──────▼──────┐      │
-│  projects   │      │
-├─────────────┤      │
-│ id (PK)     │      │
-│ tenant_id   │──────┘
-│ name        │      │
-│ description │      │
-│ status      │      │
-│ created_by  │──────┐
-└──────┬──────┘      │
-       │             │
-       │             │
-┌──────▼──────┐      │
-│    tasks    │      │
-├─────────────┤      │
-│ id (PK)     │      │
-│ project_id  │──────┘
-│ tenant_id   │──────┐
-│ title       │      │
-│ description │      │
-│ status      │      │
-│ priority    │      │
-│ assigned_to│──────┘
+│ email       │
+│ password    │
+│ full_name   │
+│ role        │
+│ is_active   │
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│  projects   │
+├─────────────┤
+│ id (PK)     │
+│ tenant_id   │
+│ name        │
+│ description │
+│ status      │
+│ created_by  │
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│    tasks    │
+├─────────────┤
+│ id (PK)     │
+│ project_id  │
+│ tenant_id   │
+│ title       │
+│ description │
+│ status      │
+│ priority    │
+│ assigned_to │
 │ due_date    │
 └─────────────┘
 
@@ -155,187 +171,217 @@ The system follows a three-tier architecture:
 └─────────────┘
 ```
 
-### Key Design Decisions
+---
 
-1. **Tenant Isolation**: Every table (except super_admin users) has `tenant_id` column
-2. **Foreign Keys**: All foreign keys have CASCADE delete for data integrity
-3. **Indexes**: All `tenant_id` columns are indexed for performance
-4. **Unique Constraints**: `UNIQUE(tenant_id, email)` ensures email uniqueness per tenant
-5. **Super Admin**: Users with `role = 'super_admin'` have `tenant_id = NULL`
+## Important Design Principles
 
-## 3. API Architecture
+1. **Tenant-Level Segregation**
+   Every core table includes a `tenant_id` field to enforce isolation.
 
-### API Endpoint Organization
+2. **Referential Integrity**
+   Foreign keys use cascade deletion to maintain consistency.
 
-All APIs follow RESTful conventions and are organized by resource:
+3. **Indexing Strategy**
+   All `tenant_id` columns are indexed to optimize filtered queries.
 
-#### Authentication Endpoints (`/api/auth`)
-- `POST /api/auth/register-tenant` - Register new tenant
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/logout` - Logout
+4. **Scoped Uniqueness**
+   Emails are unique within each tenant using `UNIQUE(tenant_id, email)`.
 
-#### Tenant Endpoints (`/api/tenants`)
-- `GET /api/tenants` - List all tenants (super admin only)
-- `GET /api/tenants/:tenantId` - Get tenant details
-- `PUT /api/tenants/:tenantId` - Update tenant
+5. **Global Super Admins**
+   Super admins have `tenant_id = NULL` and can access all tenants.
 
-#### User Endpoints (`/api/tenants/:tenantId/users` and `/api/users`)
-- `POST /api/tenants/:tenantId/users` - Add user to tenant
-- `GET /api/tenants/:tenantId/users` - List tenant users
-- `PUT /api/users/:userId` - Update user
-- `DELETE /api/users/:userId` - Delete user
+---
 
-#### Project Endpoints (`/api/projects`)
-- `POST /api/projects` - Create project
-- `GET /api/projects` - List projects
-- `PUT /api/projects/:projectId` - Update project
-- `DELETE /api/projects/:projectId` - Delete project
+# 3. API Design Structure
 
-#### Task Endpoints (`/api/projects/:projectId/tasks` and `/api/tasks`)
-- `POST /api/projects/:projectId/tasks` - Create task
-- `GET /api/projects/:projectId/tasks` - List project tasks
-- `PATCH /api/tasks/:taskId/status` - Update task status
-- `PUT /api/tasks/:taskId` - Update task
+## Resource-Based Routing
 
-### Authentication Requirements
+Endpoints follow REST standards and are grouped by resource type.
 
-| Endpoint | Authentication | Authorization |
-|----------|---------------|--------------|
-| POST /api/auth/register-tenant | None | Public |
-| POST /api/auth/login | None | Public |
-| GET /api/auth/me | Required | Any authenticated user |
-| POST /api/auth/logout | Required | Any authenticated user |
-| GET /api/tenants | Required | Super admin only |
-| GET /api/tenants/:tenantId | Required | Own tenant or super admin |
-| PUT /api/tenants/:tenantId | Required | Tenant admin or super admin |
-| POST /api/tenants/:tenantId/users | Required | Tenant admin only |
-| GET /api/tenants/:tenantId/users | Required | Own tenant or super admin |
-| PUT /api/users/:userId | Required | Self (limited) or tenant admin |
-| DELETE /api/users/:userId | Required | Tenant admin or super admin |
-| POST /api/projects | Required | Any authenticated user |
-| GET /api/projects | Required | Own tenant or super admin |
-| PUT /api/projects/:projectId | Required | Creator or tenant admin |
-| DELETE /api/projects/:projectId | Required | Creator or tenant admin |
-| POST /api/projects/:projectId/tasks | Required | Own tenant or super admin |
-| GET /api/projects/:projectId/tasks | Required | Own tenant or super admin |
-| PATCH /api/tasks/:taskId/status | Required | Own tenant or super admin |
-| PUT /api/tasks/:taskId | Required | Own tenant or super admin |
+### Authentication (`/api/auth`)
 
-### Response Format
+* Register a tenant
+* User login
+* Retrieve current user
+* Logout
 
-All APIs return consistent response format:
+### Tenant Management (`/api/tenants`)
 
-**Success Response:**
+* View all tenants (super admin)
+* View tenant details
+* Modify tenant configuration
+
+### User Management
+
+* Add users to tenant
+* List tenant users
+* Update user information
+* Remove users
+
+### Project Management (`/api/projects`)
+
+* Create project
+* Retrieve projects
+* Edit project
+* Delete project
+
+### Task Management
+
+* Create task under project
+* Retrieve tasks
+* Update task status
+* Modify task details
+
+---
+
+## Access Control Matrix
+
+Each endpoint requires authentication except registration and login. Authorization is enforced based on role:
+
+* Super admin: full system access
+* Tenant admin: manage own tenant
+* Standard user: limited to own tenant data
+
+Role-based restrictions are enforced at middleware level.
+
+---
+
+## Response Structure Standardization
+
+All responses use a consistent JSON format.
+
+Successful response:
+
 ```json
 {
   "success": true,
-  "message": "Optional message",
-  "data": { ... }
+  "message": "Optional information",
+  "data": {}
 }
 ```
 
-**Error Response:**
+Error response:
+
 ```json
 {
   "success": false,
-  "message": "Error description"
+  "message": "Error details"
 }
 ```
 
-### HTTP Status Codes
+---
 
-- `200 OK` - Successful GET, PUT, PATCH, DELETE
-- `201 Created` - Successful POST (resource created)
-- `400 Bad Request` - Validation errors, invalid input
-- `401 Unauthorized` - Missing or invalid authentication token
-- `403 Forbidden` - Insufficient permissions, subscription limit reached
-- `404 Not Found` - Resource not found
-- `409 Conflict` - Resource conflict (e.g., duplicate email)
-- `500 Internal Server Error` - Server error
+## HTTP Status Codes Used
 
-## 4. Security Architecture
+* 200 – Request successful
+* 201 – Resource created
+* 400 – Invalid input
+* 401 – Authentication failed
+* 403 – Permission denied
+* 404 – Resource missing
+* 409 – Conflict detected
+* 500 – Unexpected server issue
 
-### Multi-Layer Security
+---
 
-1. **Transport Layer**: HTTPS in production (not implemented in demo)
-2. **Authentication Layer**: JWT tokens with expiration
-3. **Authorization Layer**: Role-based access control (RBAC)
-4. **Data Layer**: Tenant isolation via middleware
-5. **Application Layer**: Input validation, SQL injection prevention
-6. **Audit Layer**: Comprehensive logging
+# 4. Security Framework
 
-### Tenant Isolation Implementation
+## Multi-Tier Security Model
+
+1. **Transport Security** – HTTPS in production
+2. **Authentication** – JWT-based stateless authentication
+3. **Authorization** – Role-Based Access Control (RBAC)
+4. **Data Filtering** – Tenant-specific query enforcement
+5. **Input Protection** – Validation and SQL injection prevention
+6. **Audit Logging** – System-wide activity tracking
+
+---
+
+## Tenant Isolation Logic
 
 ```
-Request → Auth Middleware → Extract tenantId from JWT
-    ↓
-Authorization Middleware → Check role permissions
-    ↓
-Controller → Add tenantId filter to queries
-    ↓
-Database → Return only tenant's data
+Incoming Request
+      ↓
+Authentication Middleware (validate JWT)
+      ↓
+Authorization Middleware (verify role)
+      ↓
+Controller (append tenantId condition)
+      ↓
+Database (return tenant-specific data)
 ```
 
-### Security Flow - Data Access
+All database queries are filtered by `tenant_id` to prevent cross-tenant data exposure.
 
-1. User makes API request with JWT token
-2. Auth middleware validates token and extracts `tenantId`
-3. Authorization middleware checks user role
-4. Controller automatically filters queries by `tenantId`
-5. Database returns only data belonging to user's tenant
-6. Response sent to frontend
+---
 
-## 5. Deployment Architecture
+## Secure Data Access Flow
 
-### Docker Container Architecture
+1. Request arrives with JWT
+2. Token verified and decoded
+3. Role permissions checked
+4. Controller enforces tenant filter
+5. Database returns scoped results
+6. Response delivered to client
+
+---
+
+# 5. Deployment Strategy
+
+## Containerized Deployment (Docker Compose)
 
 ```
 ┌─────────────────────────────────────┐
-│      Docker Compose Network         │
+│      Docker Internal Network        │
 │                                     │
-│  ┌──────────┐    ┌──────────┐     │
-│  │ Frontend │───▶│ Backend  │     │
-│  │ :3000    │    │ :5000    │     │
-│  └──────────┘    └────┬─────┘     │
-│                       │            │
-│                  ┌────▼─────┐     │
-│                  │ Database │     │
-│                  │ :5432    │     │
-│                  └──────────┘     │
+│  ┌──────────┐    ┌──────────┐       │
+│  │ Frontend │──▶ │ Backend  │       │
+│  │ :3000    │    │ :5000    │       │
+│  └──────────┘    └────┬─────┘       │
+│                       │             │
+│                  ┌────▼─────┐       │
+│                  │ Database │       │
+│                  │ :5432    │       │
+│                  └──────────┘       │
 └─────────────────────────────────────┘
 ```
 
-### Service Communication
+### Internal Communication
 
-- Frontend → Backend: HTTP requests to `http://backend:5000`
-- Backend → Database: PostgreSQL connection to `database:5432`
-- All services use Docker service names for internal communication
-- External access via localhost ports (3000, 5000, 5432)
+* Frontend communicates with backend via service name
+* Backend connects to database using Docker network alias
+* External access provided through mapped localhost ports
 
-## 6. Scalability Considerations
+---
 
-### Current Architecture Supports
+# 6. Scalability Strategy
 
-- **Horizontal Scaling**: Backend can be scaled by adding more instances
-- **Database Scaling**: Can migrate to read replicas for read-heavy workloads
-- **Caching**: Can add Redis for session/token caching (future)
-- **Load Balancing**: Can add load balancer in front of backend (future)
+## Supported Scaling Options
 
-### Performance Optimizations
+* **Horizontal Backend Scaling** – Multiple API instances behind load balancer
+* **Database Replication** – Read replicas for high-read scenarios
+* **Caching Layer** – Redis integration for performance improvement
+* **Load Balancing** – Reverse proxy for traffic distribution
 
-1. **Database Indexes**: All `tenant_id` columns indexed
-2. **Connection Pooling**: PostgreSQL connection pool in backend
-3. **Pagination**: All list endpoints support pagination
-4. **Query Optimization**: Efficient JOINs, proper WHERE clauses
+---
 
-## 7. Future Architecture Enhancements
+## Performance Enhancements
 
-1. **Microservices**: Split into auth service, tenant service, project service
-2. **Message Queue**: Add RabbitMQ/Kafka for async operations
-3. **Caching Layer**: Add Redis for frequently accessed data
-4. **CDN**: Serve static assets via CDN
-5. **API Gateway**: Add API gateway for rate limiting, routing
-6. **Monitoring**: Add Prometheus, Grafana for metrics
-7. **Logging**: Centralized logging with ELK stack
+1. Indexed `tenant_id` fields
+2. Connection pooling in backend
+3. Pagination for list APIs
+4. Optimized SQL joins and filters
 
+---
+
+# 7. Planned Improvements
+
+Future architectural upgrades may include:
+
+1. Breaking into microservices (auth, tenant, project modules)
+2. Introducing message brokers like Kafka or RabbitMQ
+3. Adding Redis caching
+4. CDN for static asset distribution
+5. API gateway for centralized routing and rate limiting
+6. Monitoring using Prometheus and Grafana
+7. Centralized logging through ELK stack
