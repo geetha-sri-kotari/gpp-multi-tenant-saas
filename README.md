@@ -70,7 +70,10 @@ The application follows a **three-service structure**:
 Services communicate internally using **Docker service names**, not `localhost`.
 
 System Architecture Diagram
+![System Architecture](docs/images/system-architecture.png)
+
 Database ERD Diagram
+![Database ERD](docs/images/database-erd.png)
 
 ---
 
